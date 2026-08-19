@@ -291,6 +291,23 @@
     }
 
     /* Active-toggle state for Freeze and Edit — highlight when on. */
+    /* 2026-08-19 — "Edit" label + Off/On button pair. */
+    .ev-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: 0 0 auto;
+    }
+    .ev-toggle-label {
+      color: #ccc;
+      font-family: sans-serif;
+      font-size: 11px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* Fixed width so switching Off ↔ On cannot reflow the bottom bar. */
+    #ev-edit-btn { min-width: 42px; text-align: center; }
+
     #ev-actions button.active {
       background: rgba(255, 215, 0, 0.15);
       color: #FFD700;
@@ -542,7 +559,15 @@
   <div id="bd-bar">
     <div id="ev-actions">
       <button id="ev-freeze-btn" type="button" title="Toggle animation (freeze / unfreeze)">Freeze</button>
-      <button id="ev-edit-btn"   type="button" title="Show or hide the script editor">Edit</button>
+      <!-- 2026-08-19 — was a single "Edit" button whose only state cue was an
+           amber .active tint. The label now stands on its own and the button
+           reads its state in WORDS (Off / On), so the current mode is legible
+           without depending on colour. -->
+      <span class="ev-toggle">
+        <span class="ev-toggle-label">Edit</span>
+        <button id="ev-edit-btn" type="button" aria-pressed="false"
+                title="Show or hide the script editor">Off</button>
+      </span>
       <!-- ◀/▶ Prev/Next removed 2026-07-17: relied on BD's /api/module-sibling
            endpoint, not available in the standalone GitHub Pages deployment. -->
     </div>
@@ -1053,6 +1078,9 @@ F: F+F-F-F+F+F+F-F
       evEditBtn.addEventListener('click', () => {
         const nowEditing = document.body.classList.toggle('ev-basic') === false;
         evEditBtn.classList.toggle('active', nowEditing);
+        // The word IS the state — the amber tint is now only reinforcement.
+        evEditBtn.textContent = nowEditing ? 'On' : 'Off';
+        evEditBtn.setAttribute('aria-pressed', nowEditing ? 'true' : 'false');
       });
     }
 
