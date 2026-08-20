@@ -71,6 +71,8 @@
       align-items: center;
       gap: 4px;
       flex: 0 0 auto;
+      margin-right: 20px;                 /* 2026-08-20 — nudged 20px left, off
+                                             the right edge of the bar */
     }
     #ev-media-select {
       background: #1a1a2a;
@@ -966,6 +968,20 @@ F: F+F-F-F+F+F+F-F
         }
       });
 
+      // 2026-08-20 — a proper stop: pause, rewind, reset the glyph. Exposed
+      // so the Jump-to-BD path can call it, and wired to pagehide so ANY
+      // navigation away silences it. pagehide matters on iOS: leaving for BD
+      // in the same tab can leave this page in the back/forward cache with the
+      // audio element alive, so the track carried on into BD and was still
+      // going on return. This player belongs to the standalone alone.
+      function stopPlayback() {
+        if (!audio.paused) audio.pause();
+        try { audio.currentTime = 0; } catch (_) { /* not seekable yet */ }
+        btn.textContent = '▶';
+      }
+      window.bdStopMedia = stopPlayback;
+      window.addEventListener('pagehide', stopPlayback);
+
       audio.addEventListener('ended', () => { btn.textContent = '▶'; });
 
       select.addEventListener('change', () => {
@@ -1103,6 +1119,9 @@ F: F+F-F-F+F+F+F-F
             source_text: returnPayload.source_text,
             title:       returnPayload.title
           });
+          // Stop the track before we go — pagehide is the safety net, this is
+          // the deterministic one.
+          if (typeof window.bdStopMedia === 'function') window.bdStopMedia();
           window.location.href = url;
         });
       });
