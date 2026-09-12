@@ -915,6 +915,21 @@ F: F+F-F-F+F+F+F-F
     // for the same Kolam. ?data= is still read and still emitted for anything
     // this cannot express.
     function decodeJspParam(raw) {
+      // Everything below is wrapped: decodeURIComponent throws URIError on a
+      // malformed percent sequence (a truncated or hand-edited link), and an
+      // uncaught throw here rejects the async IIFE that calls it — silently
+      // skipping the DEFAULT_SCRIPT fallback at its foot and leaving the
+      // module on "Waiting for script..." forever. A bad payload must degrade
+      // to the default, never kill initialisation.
+      try {
+        return decodeJspParamInner(raw);
+      } catch (err) {
+        console.warn('[JSP] decode threw, falling back:', err && err.message);
+        return null;
+      }
+    }
+
+    function decodeJspParamInner(raw) {
       if (!raw) return null;
       const tables = window.BD_WIRE_TABLES, byTag = window.BD_WIRE_BY_TAG;
       if (!tables || !byTag) { console.warn('[JSP] wire tables missing'); return null; }
@@ -982,7 +997,11 @@ F: F+F-F-F+F+F+F-F
       // JSP first — a ?j= link is the compact form of the same payload.
       const jspParam = params.get('j');
       if (jspParam) {
-        const decoded = decodeJspParam(jspParam);
+        // Belt and braces: even with decodeJspParam guarded, nothing in this
+        // branch may prevent the DEFAULT_SCRIPT fallback from being reached.
+        let decoded = null;
+        try { decoded = decodeJspParam(jspParam); }
+        catch (err) { console.warn('[JSP] unexpected failure:', err); }
         if (decoded) {
           incomingPayload = { script: decoded.script, node_url: decoded.node_url,
                               source_text: null, title: null };
